@@ -37,6 +37,7 @@ description: >-
 - [HTTP Parameter Pollution](./http-parameter-pollution/SKILL.md)
 - [XSLT Injection](./xslt-injection/SKILL.md)
 - [CSV Formula Injection](./csv-formula-injection/SKILL.md)
+- [nosql injection](./nosql-injection/SKILL.md)
 
 ## Recommended Flow
 

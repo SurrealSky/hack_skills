@@ -1,6 +1,6 @@
 ---
 name: hack
-description: >-
+description: >
   Entry P0 primary router for HackSkills. Use when the task involves web
   application testing, API security assessment, recon, vulnerability triage,
   exploit path planning, or choosing the right next category skill before any
@@ -9,149 +9,124 @@ description: >-
 
 # HACKING SKILLS / HackSkills
 
-## Overview
+## 🧠 内存模式（必须遵守）
 
-这是一个面向 **漏洞赏金、Web 安全、API 安全、授权渗透测试** 的总入口技能。
+本技能采用 **“长驻摘要 + 按需深度”** 混合模式：
 
-它的核心作用不是替代所有专题技巧，而是帮助 Agent：
+1. **长驻上下文（始终保留）**：以下「核心路由表」和「7 条专家直觉」必须始终保留在上下文窗口中，不得卸载。
+2. **按需加载（仅在触发时加载）**：当路由表匹配到具体漏洞类别（如 XSS、SSRF、IDOR）时，立即从文件系统加载对应子技能的完整 `SKILL.md` 内容，执行测试；完成该方向测试后，卸载子技能内容，释放上下文窗口给其他模块。
+3. **动态重路由**：在每轮子技能执行完毕后，Agent 必须基于新发现（如响应头、报错信息、新增接口）重新对照路由表，判断是否切换到其他攻击面。
 
-1. 先确定测试阶段（Recon / 验证 / 提权 / 组合链）
-2. 再选择正确的漏洞类别
-3. 避免只依赖基础训练数据，优先使用结构化方法论
-4. 优先关注 AI 容易忽略但在实战里很重要的边界条件
+---
 
-## Trust Model
+## 1. 核心路由表（始终驻留）
 
-- 本知识库强调内容安全与可审查性。
-- 使用时应限定在 **授权目标**、**合法研究**、**防御验证**、**漏洞赏金规则允许** 的范围内。
-- 不要把这里的技巧用于未授权攻击。
+**使用规则**：先做 Recon（目标类型、身份模型、输入输出位置），再按下表观测到的**现象**匹配最可能的攻击方向，并立即加载对应的子技能。
 
-## When to Use This Skill
-
-在以下场景优先使用本技能：
-
-- 你刚接手一个新的漏洞赏金目标，不知道先测什么
-- 你需要决定应该加载 XSS / SQLi / SSRF / IDOR / JWT / API 等哪类思路
-- 你想让 Agent 按更稳定的方法论进行 Web/API 安全测试
-- 你需要把零散的现象路由到合适的攻击面
-- 你希望 AI 在安全领域少漏掉关键测试点
-
-## Operating Model
-
-### Step 1: 先做 Recon 和上下文确认
-
-优先收集：
-
-- 目标类型：传统 Web、REST API、移动端后端、管理后台、支付流程、文件上传、GraphQL
-- 身份与权限模型：匿名、普通用户、管理员、多租户
-- 输入位置：URL、查询参数、JSON、Header、Cookie、文件名、导入文件、模板、回显点
-- 输出位置：HTML、属性、JS、PDF、邮件、日志、后台任务、移动端接口
-
-### Step 2: 按观察到的现象路由
-
-| 现象 | 优先方向 |
+| 现象 | 优先方向 → 加载子技能路径 |
 |---|---|
-| 输入反射到 HTML / JS | XSS / SSTI |
-| 服务端会主动访问 URL / 主机名 | SSRF |
-| 接收 XML / Office / SVG | XXE |
-| 路径、文件名、下载接口可控 | Path Traversal / LFI |
-| API 中大量对象 ID | IDOR / BOLA / BFLA |
-| 登录、找回密码、2FA、Session | Auth Bypass / JWT / OAuth |
-| 多步骤交易、优惠券、价格、库存 | Business Logic |
-| MongoDB / JSON 查询语法暴露 | NoSQL Injection |
-| 命令行工具、图像处理、导入器 | Command Injection |
-| HTTP 请求解析异常 / 前后端分帧不一致 | Request Smuggling |
-| Node.js JSON 处理 / `__proto__` 可控 | Prototype Pollution |
-| PHP 弱比较 / 0e hash / 松散条件 | Type Juggling |
-| 同名参数重复 / WAF 与应用解析不一致 | HTTP Parameter Pollution |
-| 一次性操作（优惠券/库存/重置） | Race Condition |
-| XML/XSLT 模板处理 | XSLT Injection |
-| .git/.svn/.env 路径可访问 | Insecure SCM |
-| 导出 CSV/Excel 功能 | CSV Formula Injection |
-| WebSocket 协议升级 | WebSocket Security |
-| 内部包名 / 供应链清单 | Dependency Confusion |
+| 输入反射到 HTML / JS 属性 / DOM 操作 | XSS → `../injection-checking/xss-cross-site-scripting/SKILL.md` |
+| 服务端主动访问 URL / 主机名（如头像、预览、Webhook） | SSRF → `../injection-checking/ssrf-server-side-request-forgery/SKILL.md` |
+| 接收 XML / Office / SVG / SOAP 请求 | XXE → `../injection-checking/xxe-xml-external-entity/SKILL.md` |
+| 路径、文件名、下载接口参数可控（如 `?file=report.pdf`） | Path Traversal / LFI → `../path-traversal-lfi/SKILL.md` |
+| API 路径或 JSON 中包含大量对象 ID（如 `/user/123`、`{"org_id": 456}`） | IDOR / BOLA / BFLA → `../auth-sec/idor-broken-object-authorization/SKILL.md` |
+| 登录、注册、找回密码、2FA、Session 管理、JWT | Auth Bypass / JWT / OAuth → `../auth-sec/authbypass-authentication-flaws/SKILL.md` 及 `../auth-sec/jwt-oauth-token-attacks/SKILL.md` |
+| 多步骤交易、优惠券、价格修改、库存扣减、状态机跳转（如 draft→paid→shipped） | Business Logic → `../business-logic-vuln/business-logic-vulnerabilities/SKILL.md`（同时交叉 Auth Bypass） |
+| MongoDB / JSON 查询语法参数（如 `?search[$ne]=1`） | NoSQL Injection → `../injection-checking/nosql-injection/SKILL.md` |
+| 命令执行类参数（如 `?ping=8.8.8.8`、`?convert=image.jpg`、导入器） | Command Injection → `../injection-checking/cmdi-command-injection/SKILL.md` |
+| HTTP 请求解析异常 / 前后端 CL.TE 或 TE.CL 分帧不一致 / HTTP/2 降级 | Request Smuggling → `../injection-checking/request-smuggling/SKILL.md` |
+| Node.js 环境接收 JSON，且包含 `__proto__` 或 `constructor` 关键字 | Prototype Pollution → `../injection-checking/prototype-pollution/SKILL.md` |
+| 同名参数重复 / WAF 与后端应用解析顺序不一致 | HTTP Parameter Pollution → `../injection-checking/http-parameter-pollution/SKILL.md` |
+| 优惠券领取、密码重置、库存扣减、投票等一次性/限量操作 | Race Condition → `../race-condition/SKILL.md` |
+| 文件上传功能 | Insecure File Upload → `../upload-insecure-files/SKILL.md` |
+| GraphQL 端点（`/graphql`、`/v1/graphql`） | GraphQL 内省/批量查询 → 先载入 `../api-sec/SKILL.md`，再手动测试内省和别名 |
+| 响应头包含 `X-Cache`、`X-Varnish`、`CF-Cache-Status` 且存在 `X-Forwarded-Host` 可控 | Web Cache Poisoning / Deception → 查 `../injection-checking/web-cache-poisoning/SKILL.md`|
+| `/robots.txt`、`/sitemap.xml`、`/.well-known/`、`/swagger-ui/`、`/v3/api-docs`、`/graphql` 可访问 | Recon（先爬元数据地图） → 继续使用本技能 Step 1 做信息收集 |
+|`/.git/`、`/.env`、`/backup.zip`、`/dump.sql`、`/js/*.js` 中暴露密钥或内部路径 | 信息泄露 → 立即爬取并提取凭证，同时切换到 Auth Bypass / API Security 进行凭证复用测试|
+|参数值含 `'` `"` `\` 返回 SQL 错误或响应延时变化|SQLi → `../injection-checking/sqli-sql-injection/SKILL.md`|
+|参数值含 `{{` `}}` `${}` `#{` 且响应回显计算值或报模板错误|SSTI → `../injection-checking/ssti-server-side-template-injection/SKILL.md`|
+|JSON 请求体中包含非文档字段（如 `role`、`is_admin`、`permission`、`group`）且被接受|Mass Assignment → `../api-sec/SKILL.md`（参考其中 Mass Assignment 章节）|
+|响应头包含 `Access-Control-Allow-Origin: *` 或 `null`，且带 `Access-Control-Allow-Credentials: true`| CORS Misconfiguration → `../auth-sec/cors-cross-origin-misconfiguration/SKILL.md`|
+<!-- | XML / XSLT 模板处理（如 `?xslt=template.xsl`） | XSLT Injection → `../injection-checking/xslt-injection/SKILL.md` | -->
+<!-- | 导出 CSV / Excel 且输出内容部分可控 | CSV Formula Injection → `../injection-checking/csv-formula-injection/SKILL.md` | -->
+<!-- | PHP 弱比较参数（如 `?hash=0e123`）或松散类型校验 | Type Juggling → `../injection-checking/type-juggling/SKILL.md` | -->
+---
 
-### Step 3: 使用最可能命中的测试顺序
+## 2. 推荐测试顺序（始终驻留）
 
-1. Recon / Methodology
-2. API Security / Auth / IDOR
-3. XSS / SQLi / SSRF / SSTI / XXE
-4. Business Logic / Race Condition
-5. 组合链与提权路径
+> **优先级自上而下，但允许根据 Recon 结果跳级。**
 
-## Core Skill Map
+1. **Recon 与元数据收集**：检查上述路由表最后一行的静态路径、JS 文件、注释、OpenAPI 文档。
+2. **API 安全与授权**：IDOR / BOLA / BFLA / Mass Assignment / JWT / OAuth / CORS。
+3. **注入类基础**：XSS / SQLi / SSRF / SSTI / XXE（优先测反射型和回显型）。
+4. **业务逻辑与竞态**：支付流程、多步骤表单、一次性操作、状态机绕过。
+5. **组合链与提权**：将前 4 步中发现的低危问题串联，尝试提升影响。
 
-如果你拥有完整仓库，优先结合这些专题文档一起使用：
+---
 
-- [Recon and Methodology](../recon-and-methodology/SKILL.md)
-- [XSS Cross Site Scripting](../injection-checking/xss-cross-site-scripting/SKILL.md)
-- [SQLi SQL Injection](../injection-checking/sqli-sql-injection/SKILL.md)
-- [SSRF Server Side Request Forgery](../injection-checking/ssrf-server-side-request-forgery/SKILL.md)
-- [XXE XML External Entity](../injection-checking/xxe-xml-external-entity/SKILL.md)
-- [SSTI Server Side Template Injection](../injection-checking/ssti-server-side-template-injection/SKILL.md)
-- [IDOR Broken Object Authorization](../auth-sec/idor-broken-object-authorization/SKILL.md)
-- [CMDi Command Injection](../injection-checking/cmdi-command-injection/SKILL.md)
-- [Path Traversal LFI](../path-traversal-lfi/SKILL.md)
-- [CSRF Cross Site Request Forgery](../auth-sec/csrf-cross-site-request-forgery/SKILL.md)
-- [API Security Router](../api-sec/SKILL.md)
-- [JWT OAuth Token Attacks](../auth-sec/jwt-oauth-token-attacks/SKILL.md)
-- [OAuth OIDC Misconfiguration](../auth-sec/oauth-oidc-misconfiguration/SKILL.md)
-- [CORS Cross Origin Misconfiguration](../auth-sec/cors-cross-origin-misconfiguration/SKILL.md)
-- [SAML SSO Assertion Attacks](../auth-sec/saml-sso-assertion-attacks/SKILL.md)
-- [Authentication Bypass](../auth-sec/authbypass-authentication-flaws/SKILL.md)
-- [Business Logic Vulnerabilities](../business-logic-vuln/business-logic-vulnerabilities/SKILL.md)
-- [Upload Insecure Files](../upload-insecure-files/SKILL.md)
-- [Request Smuggling](../injection-checking/request-smuggling/SKILL.md)
-- [Prototype Pollution](../injection-checking/prototype-pollution/SKILL.md)
-- [Type Juggling (PHP)](../injection-checking/type-juggling/SKILL.md)
-- [HTTP Parameter Pollution](../injection-checking/http-parameter-pollution/SKILL.md)
-- [Race Condition](../race-condition/SKILL.md)
-- [XSLT Injection](../injection-checking/xslt-injection/SKILL.md)
-- [CSV Formula Injection](../injection-checking/csv-formula-injection/SKILL.md)
+## 3. 7 条专家直觉（始终驻留）
 
-原先单独拆出的 payload-selection、brute-selection 一类小 skill 已并回对应主 skill，避免入口过多导致 loader 负担和选择噪音。
+> 这些是基础模型容易忽略、但在真实漏洞赏金中极高价值的思维模式。
 
-## High-Value Expert Intuitions
+1. **同一套过滤逻辑往往复用在多个页面**：找到一个绕过点，立即在所有类似功能点（上传、搜索、导出）中复测。
+2. **参数名本身也是攻击面**：WAF 通常紧盯参数值，不盯参数名。尝试添加 `?callback=`、`?debug=`、`?config=` 等非标准参数。
+3. **二阶漏洞非常常见**：存储时未过滤不代表读取后进入危险上下文（如 HTML 渲染、JS eval、SQL 拼接）时也安全。
+4. **BOLA 的本质是“有认证、无授权”**：不要只测越权查看，必须用 A/B 账号切换重放所有写操作（PUT、DELETE、PATCH）。
+5. **老版本接口最容易漏补丁**：`/api/v2` 修了不代表 `/api/v1` 下线了，务必扫描版本化路径。
+6. **业务逻辑漏洞往往回报最高**：它们无法被扫描器发现，且组合链往往能直接提权到管理员或造成资金损失。
+7. **Race Condition 优先测试“一次性”操作，但不要忽略幂等操作**：优惠券、重置、试用是首选；修改密码、绑定邮箱也可能因竞态导致状态错乱。
 
-这些点是很多基础模型容易忽略，但在真实漏洞赏金里经常有效：
+---
 
-1. **同一套过滤逻辑往往复用在多个页面**：一个点可绕过，类似页面通常也能绕过。
-2. **参数名本身也是攻击面**：WAF 经常只盯参数值，不盯参数名。
-3. **二阶漏洞非常常见**：存储时安全，不代表读取后进入危险上下文时也安全。
-4. **BOLA 的本质是“有认证、无授权”**：A/B 账号切换重放非常关键。
-5. **老版本接口最容易漏补丁**：v2 修了不代表 v1 下线了。
-6. **业务逻辑漏洞往往回报最高**：它们难以被扫描器发现，也更容易长期存在。
-7. **Race Condition 应优先测试“一次性”操作**：优惠券、领取、重置、邀请、试用、库存扣减。
-8. **JWT 攻击先看密钥与算法上下文**：不要盲目试 payload，要先确认 `alg`、`kid`、JWKS、密钥来源。
+## 4. 按需加载协议（执行规则）
 
-## Suggested Prompts
+当路由表命中某个攻击方向时，Agent 必须执行以下动作：
 
-可把本技能当作路由器来用，先让 Agent 明确阶段和目标：
+1. **加载**：使用 `read_file` 或其他工具，加载对应子技能路径下的完整 `SKILL.md` 内容到上下文。
+2. **执行**：严格依照子技能中的测试步骤（快速命中 → 绕过技巧 → 深度利用）进行验证。
+3. **逻辑卸载**：完成该方向测试后，不得在后续对话中重复粘贴或引用该子技能的冗长 payload 清单与绕过细节。应将测试结论压缩为 1-2 句摘要（如“SSRF 已测，仅出网无内网回显”），并在下一轮重路由时只依赖该摘要与本核心路由表。如需重新测试该方向，可再次加载原始文件，但不保留旧上下文。
+4. **重路由**：基于本轮测试的响应（如新的报错信息、接口字段、响应头），重新对照路由表，决定下一轮加载哪个子技能。
 
-- “先按漏洞赏金方法论帮我做这个目标的测试路线规划。”
-- “这是一个 REST API，请优先从 BOLA、BFLA、Mass Assignment、JWT 角度审视。”
-- “这个参数会触发服务端请求，请按 SSRF 思路列出关键验证点。”
-- “这个功能是支付/优惠券/库存流程，请优先考虑业务逻辑和竞态。”
-- “我只看到登录和找回密码流程，请按 Auth Bypass + OAuth/JWT + CSRF 路线分析。”
+---
 
-## Installation Notes
+## 5. 技能映射索引（参考）
 
-推荐 skill 名称：
+> 此列表供快速查阅，不强制加载。实际加载请按路由表路径。
 
-- `hack`
+- Recon & Methodology: `../recon-and-methodology/SKILL.md`
+- XSS: `../injection-checking/xss-cross-site-scripting/SKILL.md`
+- SQLi: `../injection-checking/sqli-sql-injection/SKILL.md`
+- SSRF: `../injection-checking/ssrf-server-side-request-forgery/SKILL.md`
+- XXE: `../injection-checking/xxe-xml-external-entity/SKILL.md`
+- SSTI: `../injection-checking/ssti-server-side-template-injection/SKILL.md`
+- IDOR: `../auth-sec/idor-broken-object-authorization/SKILL.md`
+- CMDi: `../injection-checking/cmdi-command-injection/SKILL.md`
+- Path Traversal: `../path-traversal-lfi/SKILL.md`
+- CSRF: `../auth-sec/csrf-cross-site-request-forgery/SKILL.md`
+- API Security: `../api-sec/SKILL.md`
+- JWT/OAuth: `../auth-sec/jwt-oauth-token-attacks/SKILL.md`
+- OAuth/OIDC: `../auth-sec/oauth-oidc-misconfiguration/SKILL.md`
+- CORS: `../auth-sec/cors-cross-origin-misconfiguration/SKILL.md`
+- SAML: `../auth-sec/saml-sso-assertion-attacks/SKILL.md`
+- Auth Bypass: `../auth-sec/authbypass-authentication-flaws/SKILL.md`
+- Business Logic: `../business-logic-vuln/business-logic-vulnerabilities/SKILL.md`
+- File Upload: `../upload-insecure-files/SKILL.md`
+- Request Smuggling: `../injection-checking/request-smuggling/SKILL.md`
+- Prototype Pollution: `../injection-checking/prototype-pollution/SKILL.md`
+- HTTP Parameter Pollution: `../injection-checking/http-parameter-pollution/SKILL.md`
+- Race Condition: `../race-condition/SKILL.md`
+<!-- - XSLT Injection: `../injection-checking/xslt-injection/SKILL.md` -->
+<!-- - CSV Formula Injection: `../injection-checking/csv-formula-injection/SKILL.md` -->
+<!-- - Type Juggling: `../injection-checking/type-juggling/SKILL.md` -->
 
-推荐检索关键词：
+---
 
-- `HackSkills`
-- `HACKING SKILLS`
-- `bug bounty`
-- `赏金猎人`
+## 6. 启动提示词示例（Agent 自用）
 
-## Guidelines
+当用户提供目标后，Agent 内部应如此启动：
 
-- 优先按目标类型与现象路由，而不是随机枚举 payload。
-- 需要 payload 时，优先使用对应主 skill 里的 quick start / first-pass 样本，而不是再跳一个中间入口。
-- 优先寻找可复用的过滤器、共享组件和跨页面复现路径。
-- 先确认认证边界、授权边界、版本边界，再深入利用。
-- 优先保留可解释、可审查、可复现的测试过程。
-- 当完整仓库可用时，优先回到专题文档获取更细的攻击细节。
+> “目标已获取。我将先执行 Recon（检查 robots、sitemap、OpenAPI、JS 文件）。基于结果，我按 HackSkills 路由表匹配攻击面。若发现 IDOR 迹象，我将加载 IDOR 子技能；若发现 SSRF 迹象，加载 SSRF 子技能。每轮测试后我将重新评估，确保组合链不被遗漏。”
+
+---
+
+**替换完成后，你的 Agent 将自动遵守“长驻路由表 + 按需加载深度子技能”的规则，既大幅降低上下文占用，又不会丢失路由决策能力和组合链直觉。**
