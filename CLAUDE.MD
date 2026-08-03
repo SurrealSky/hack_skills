@@ -42,7 +42,7 @@
     - py -3 -c "import requests, json; r=requests.get('URL', headers={'Cookie':'xxx'}, params={'id':'101'}); print(r.status_code, len(r.text), r.headers.get('content-type'), r.text[:200])"
     - 若需 POST/PUT，修改方法并添加 data 或 json
 - 备用使用 curl（仅输出关键信息，避免污染终端）：
-    - curl -k -s -w '%{http_code}\n' -o /dev/null -D - 'URL'
+    - curl -k -s -w "%{http_code}\n" -o nul -D - "URL"
 - 无法直接发送时：引导用户提供原始请求/响应的完整内容，基于已有信息进行推理测试（但优先尝试实时请求）。
 
 > 无论哪种模式，你都必须遵循"全局约束"和"参数智能决策"流程。
