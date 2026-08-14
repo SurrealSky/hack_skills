@@ -11,7 +11,7 @@ description: >
 
 ## 🧠 内存模式（必须遵守）
 
-本技能采用 **“长驻摘要 + 按需深度”** 混合模式：
+本技能采用 **长驻摘要 + 按需深度** 混合模式：
 
 1. **长驻上下文（始终保留）**：以下「核心路由表」和「7 条专家直觉」必须始终保留在上下文窗口中，不得卸载。
 2. **按需加载（仅在触发时加载）**：当路由表匹配到具体漏洞类别（如 XSS、SSRF、IDOR）时，立即从文件系统加载对应子技能的完整 `SKILL.md` 内容，执行测试；完成该方向测试后，卸载子技能内容，释放上下文窗口给其他模块。
@@ -21,32 +21,104 @@ description: >
 
 ## 1. 核心路由表（始终驻留）
 
-**使用规则**：先做 Recon（目标类型、身份模型、输入输出位置），再按下表观测到的**现象**匹配最可能的攻击方向，并立即加载对应的子技能。
+**使用规则**：匹配现象后立即加载对应子技能。信息收集 与 信息泄露 条目优先级最高，应最先执行。
 
-| 现象 | 优先方向 → 加载子技能路径 |
-|---|---|
-| 输入反射到 HTML / JS 属性 / DOM 操作 | XSS → `../injection-checking/xss-cross-site-scripting/SKILL.md` |
-| 服务端主动访问 URL / 主机名（如头像、预览、Webhook） | SSRF → `../injection-checking/ssrf-server-side-request-forgery/SKILL.md` |
-| 接收 XML / Office / SVG / SOAP 请求 | XXE → `../injection-checking/xxe-xml-external-entity/SKILL.md` |
-| 路径、文件名、下载接口参数可控（如 `?file=report.pdf`） | Path Traversal / LFI → `../path-traversal-lfi/SKILL.md` |
-| API 路径或 JSON 中包含大量对象 ID（如 `/user/123`、`{"org_id": 456}`） | IDOR / BOLA / BFLA → `../auth-sec/idor-broken-object-authorization/SKILL.md` |
-| 登录、注册、找回密码、2FA、Session 管理、JWT | Auth Bypass / JWT / OAuth → `../auth-sec/authbypass-authentication-flaws/SKILL.md` 及 `../auth-sec/jwt-oauth-token-attacks/SKILL.md` |
-| 多步骤交易、优惠券、价格修改、库存扣减、状态机跳转（如 draft→paid→shipped） | Business Logic → `../business-logic-vuln/business-logic-vulnerabilities/SKILL.md`（同时交叉 Auth Bypass） |
-| MongoDB / JSON 查询语法参数（如 `?search[$ne]=1`） | NoSQL Injection → `../injection-checking/nosql-injection/SKILL.md` |
-| 命令执行类参数（如 `?ping=8.8.8.8`、`?convert=image.jpg`、导入器） | Command Injection → `../injection-checking/cmdi-command-injection/SKILL.md` |
-| HTTP 请求解析异常 / 前后端 CL.TE 或 TE.CL 分帧不一致 / HTTP/2 降级 | Request Smuggling → `../injection-checking/request-smuggling/SKILL.md` |
-| Node.js 环境接收 JSON，且包含 `__proto__` 或 `constructor` 关键字 | Prototype Pollution → `../injection-checking/prototype-pollution/SKILL.md` |
-| 同名参数重复 / WAF 与后端应用解析顺序不一致 | HTTP Parameter Pollution → `../injection-checking/http-parameter-pollution/SKILL.md` |
-| 优惠券领取、密码重置、库存扣减、投票等一次性/限量操作 | Race Condition → `../race-condition/SKILL.md` |
-| 文件上传功能 | Insecure File Upload → `../upload-insecure-files/SKILL.md` |
-| GraphQL 端点（`/graphql`、`/v1/graphql`） | GraphQL 内省/批量查询 → 先载入 `../api-sec/SKILL.md`，再手动测试内省和别名 |
-| 响应头包含 `X-Cache`、`X-Varnish`、`CF-Cache-Status` 且存在 `X-Forwarded-Host` 可控 | Web Cache Poisoning / Deception → 查 `../injection-checking/web-cache-poisoning/SKILL.md`|
-| `/robots.txt`、`/sitemap.xml`、`/.well-known/`、`/swagger-ui/`、`/v3/api-docs`、`/graphql` 可访问 | Recon（先爬元数据地图） → 继续使用本技能 Step 1 做信息收集 |
-|`/.git/`、`/.env`、`/backup.zip`、`/dump.sql`、`/js/*.js` 中暴露密钥或内部路径 | 信息泄露 → 立即爬取并提取凭证，同时切换到 Auth Bypass / API Security 进行凭证复用测试|
-|参数值含 `'` `"` `\` 返回 SQL 错误或响应延时变化|SQLi → `../injection-checking/sqli-sql-injection/SKILL.md`|
-|参数值含 `{{` `}}` `${}` `#{` 且响应回显计算值或报模板错误|SSTI → `../injection-checking/ssti-server-side-template-injection/SKILL.md`|
-|JSON 请求体中包含非文档字段（如 `role`、`is_admin`、`permission`、`group`）且被接受|Mass Assignment → `../api-sec/SKILL.md`（参考其中 Mass Assignment 章节）|
-|响应头包含 `Access-Control-Allow-Origin: *` 或 `null`，且带 `Access-Control-Allow-Credentials: true`| CORS Misconfiguration → `../auth-sec/cors-cross-origin-misconfiguration/SKILL.md`|
+- **信息收集（Recon）**
+  - 现象：`/robots.txt`、`/sitemap.xml`、`/.well-known/`、`/swagger-ui/`、`/v3/api-docs`、`/graphql` 可访问
+  - 路径：`../recon-for-sec/SKILL.md`（Recon 入口 + 完整方法论）
+
+- **信息泄露（Information Disclosure）**
+  - 现象：`/.git/`、`/.env`、`/backup.zip`、`/dump.sql`、`/js/*.js` 中暴露密钥或内部路径
+  - 路径：`../insecure-source-code-management/SKILL.md`（VCS/备份/.env 泄露）；`/js/*.js` 密钥等广义泄露见 `../recon-for-sec/SKILL.md` §13；命中凭证后重路由 Auth Bypass / API Security 复用
+
+- **XSS（跨站脚本）**
+  - 现象：输入反射到 HTML / JS 属性 / DOM 操作
+  - 路径：`../injection-checking/xss-cross-site-scripting/SKILL.md`
+
+- **SSRF（服务端请求伪造）**
+  - 现象：服务端主动访问 URL / 主机名（如头像、预览、Webhook）
+  - 路径：`../injection-checking/ssrf-server-side-request-forgery/SKILL.md`
+
+- **XXE（XML外部实体注入）**
+  - 现象：接收 XML / Office / SVG / SOAP 请求
+  - 路径：`../injection-checking/xxe-xml-external-entity/SKILL.md`
+
+- **Path Traversal / LFI（路径遍历/本地文件包含）**
+  - 现象：路径、文件名、下载接口参数可控（如 `?file=report.pdf`）
+  - 路径：`../path-traversal-lfi/SKILL.md`
+
+- **Secondary Context Path Traversal（二级上下文路径遍历）**
+  - 现象：目标采用 BFF/网关模式，URL 参数值可能被拼接到后端微服务请求中；尝试注入 `../` 或绝对路径时出现 `No route to host`、`Connection refused`、upstream 404 等**网络层/路由层**错误；或公开端点返回 JSON/XML 内部数据。
+  - 路径：`../path-traversal-lfi/secondary-context/SKILL.md`
+
+- **IDOR / BOLA / BFLA（对象级/功能级授权绕过）**
+  - 现象：API 路径或 JSON 中包含大量对象 ID（如 `/user/123`、`{"org_id": 456}`）
+  - 路径：`../auth-sec/idor-broken-object-authorization/SKILL.md`
+
+- **Auth Bypass / JWT / OAuth（认证绕过与令牌攻击）**
+  - 现象：登录、注册、找回密码、2FA、Session 管理、JWT
+  - 路径：`../auth-sec/authbypass-authentication-flaws/SKILL.md` 及 `../auth-sec/jwt-oauth-token-attacks/SKILL.md`
+
+- **Business Logic（业务逻辑漏洞）**
+  - 现象：多步骤交易、优惠券、价格修改、库存扣减、状态机跳转（如 draft→paid→shipped）
+  - 路径：`../business-logic-vuln/business-logic-vulnerabilities/SKILL.md`（同时交叉 Auth Bypass）
+
+- **NoSQL Injection（NoSQL注入）**
+  - 现象：MongoDB / JSON 查询语法参数（如 `?search[$ne]=1`）
+  - 路径：`../injection-checking/nosql-injection/SKILL.md`
+
+- **Command Injection（命令注入）**
+  - 现象：命令执行类参数（如 `?ping=8.8.8.8`、`?convert=image.jpg`、导入器）
+  - 路径：`../injection-checking/cmdi-command-injection/SKILL.md`
+
+- **Request Smuggling（请求走私）**
+  - 现象：HTTP 请求解析异常 / 前后端 CL.TE 或 TE.CL 分帧不一致 / HTTP/2 降级
+  - 路径：`../injection-checking/request-smuggling/SKILL.md`
+
+- **Prototype Pollution（原型链污染）**
+  - 现象：Node.js 环境接收 JSON，且包含 `__proto__` 或 `constructor` 关键字
+  - 路径：`../injection-checking/prototype-pollution/SKILL.md`
+
+- **HTTP Parameter Pollution（HTTP参数污染）**
+  - 现象：同名参数重复 / WAF 与后端应用解析顺序不一致
+  - 路径：`../injection-checking/http-parameter-pollution/SKILL.md`
+
+- **Race Condition（条件竞争）**
+  - 现象：优惠券领取、密码重置、库存扣减、投票等一次性/限量操作
+  - 路径：`../race-condition/SKILL.md`
+
+- **Insecure File Upload（不安全文件上传）**
+  - 现象：文件上传功能
+  - 路径：`../upload-insecure-files/SKILL.md`
+
+- **GraphQL API Security**
+  - 现象：GraphQL 端点（`/graphql`、`/v1/graphql`）
+  - 路径：`../api-sec/graphql-and-hidden-parameters/SKILL.md`
+
+- **Web Cache Poisoning（Web缓存投毒）**
+  - 现象：响应头含 `X-Cache`/`X-Varnish`/`CF-Cache-Status`，且 `X-Forwarded-Host`/`X-Original-URL`/`Host` 可控，可投毒缓存命中其他用户
+  - 路径：`../web-cache-poisoning/SKILL.md`
+
+- **Web Cache Deception（Web缓存欺骗）**
+  - 现象：缓存把带路径混淆的敏感认证内容（如 `/account/..%2fprofile.css`）错误缓存并泄露给其他用户
+  - 路径：`../web-cache-deception/SKILL.md`
+
+- **SQL Injection（SQL注入）**
+  - 现象：参数值含 `'` `"` `\` 返回 SQL 错误或响应延时变化
+  - 路径：`../injection-checking/sqli-sql-injection/SKILL.md`
+
+- **SSTI（服务端模板注入）**
+  - 现象：参数值含 `{{` `}}` `${}` `#{` 且响应回显计算值或报模板错误
+  - 路径：`../injection-checking/ssti-server-side-template-injection/SKILL.md`
+
+- **Mass Assignment（批量赋值）**
+  - 现象：JSON 请求体中包含非文档字段（如 `role`、`is_admin`、`permission`、`group`）且被接受
+  - 路径：`../api-sec/SKILL.md`（参考其中 Mass Assignment 章节）
+
+- **CORS Misconfiguration（跨域资源共享配置错误）**
+  - 现象：响应头包含 `Access-Control-Allow-Origin: *` 或 `null`，且带 `Access-Control-Allow-Credentials: true`
+  - 路径：`../auth-sec/cors-cross-origin-misconfiguration/SKILL.md`
+
 <!-- | XML / XSLT 模板处理（如 `?xslt=template.xsl`） | XSLT Injection → `../injection-checking/xslt-injection/SKILL.md` | -->
 <!-- | 导出 CSV / Excel 且输出内容部分可控 | CSV Formula Injection → `../injection-checking/csv-formula-injection/SKILL.md` | -->
 <!-- | PHP 弱比较参数（如 `?hash=0e123`）或松散类型校验 | Type Juggling → `../injection-checking/type-juggling/SKILL.md` | -->
@@ -93,15 +165,19 @@ description: >
 
 > 此列表供快速查阅，不强制加载。实际加载请按路由表路径。
 
-- Recon & Methodology: `../recon-and-methodology/SKILL.md`
+- Recon 入口 + 方法论: `../recon-for-sec/SKILL.md`
+- Insecure Source Code Management: `../insecure-source-code-management/SKILL.md`
+- Dependency Confusion: `../dependency-confusion/SKILL.md`
 - XSS: `../injection-checking/xss-cross-site-scripting/SKILL.md`
 - SQLi: `../injection-checking/sqli-sql-injection/SKILL.md`
+- NoSQL Injection: `../injection-checking/nosql-injection/SKILL.md`
 - SSRF: `../injection-checking/ssrf-server-side-request-forgery/SKILL.md`
 - XXE: `../injection-checking/xxe-xml-external-entity/SKILL.md`
 - SSTI: `../injection-checking/ssti-server-side-template-injection/SKILL.md`
 - IDOR: `../auth-sec/idor-broken-object-authorization/SKILL.md`
 - CMDi: `../injection-checking/cmdi-command-injection/SKILL.md`
 - Path Traversal: `../path-traversal-lfi/SKILL.md`
+- Secondary Context Path Traversal: `../path-traversal-lfi/secondary-context/SKILL.md`
 - CSRF: `../auth-sec/csrf-cross-site-request-forgery/SKILL.md`
 - API Security: `../api-sec/SKILL.md`
 - JWT/OAuth: `../auth-sec/jwt-oauth-token-attacks/SKILL.md`
@@ -115,6 +191,8 @@ description: >
 - Prototype Pollution: `../injection-checking/prototype-pollution/SKILL.md`
 - HTTP Parameter Pollution: `../injection-checking/http-parameter-pollution/SKILL.md`
 - Race Condition: `../race-condition/SKILL.md`
+- Web Cache Poisoning: `../web-cache-poisoning/SKILL.md`
+- Web Cache Deception: `../web-cache-deception/SKILL.md`
 <!-- - XSLT Injection: `../injection-checking/xslt-injection/SKILL.md` -->
 <!-- - CSV Formula Injection: `../injection-checking/csv-formula-injection/SKILL.md` -->
 <!-- - Type Juggling: `../injection-checking/type-juggling/SKILL.md` -->

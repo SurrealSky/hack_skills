@@ -6,7 +6,7 @@ description: >-
 
 # SKILL: Insecure Source Code Management
 
-> **AI LOAD INSTRUCTION**: This skill covers detection and recovery of exposed version-control metadata, common backup artifacts, and related misconfigurations. Use only in **authorized** assessments. Treat recovered credentials and URLs as sensitive; do not exfiltrate real data beyond scope. For broad discovery workflow, cross-load [recon-for-sec](../recon-for-sec/SKILL.md) and [recon-and-methodology](../recon-and-methodology/SKILL.md) when those skills exist in the workspace.
+> **AI LOAD INSTRUCTION**: This skill covers detection and recovery of exposed version-control metadata, common backup artifacts, and related misconfigurations. Use only in **authorized** assessments. Treat recovered credentials and URLs as sensitive; do not exfiltrate real data beyond scope. For broad discovery workflow, cross-load [recon-for-sec](../recon-for-sec/SKILL.md) for the full recon methodology when that skill exists in the workspace.
 
 ## 0. QUICK START
 
@@ -23,7 +23,7 @@ High-value paths to probe first (GET or HEAD, respect rate limits):
 /.env
 ```
 
-**中文路由提示**：快速扫这些路径；若需完整侦察流程，从 `recon-for-sec`、`recon-and-methodology` 技能载入方法论后再深入。
+**中文路由提示**：快速扫这些路径；若需完整侦察流程，从 `recon-for-sec` 技能载入完整方法论后再深入。
 
 ---
 
@@ -155,7 +155,6 @@ Probe (adjust for app root and naming conventions):
 
 ## 6. RELATED ROUTING
 
-- From **[recon-for-sec](../recon-for-sec/SKILL.md)** — scope-safe discovery, crawling, and fingerprinting before deep VCS tests.
-- From **[recon-and-methodology](../recon-and-methodology/SKILL.md)** — structured methodology and evidence handling.
+- From **[recon-for-sec](../recon-for-sec/SKILL.md)** — scope-safe discovery, crawling, fingerprinting, and full recon methodology before deep VCS tests.
 
 **中文**：与侦察类技能联动——先定范围与速率，再针对 VCS/备份做定向验证。
