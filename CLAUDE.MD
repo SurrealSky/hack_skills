@@ -28,6 +28,20 @@
     - 中间文件（原始请求/响应副本）存放于 ./temp/，命名规则同上。
     - 若目录不存在，自动创建；若无法创建，向用户提示并终止该步骤。
 
+# 目标授权分级（RoE）
+每个目标开局第一步必须先判定授权级别并显式声明，后续所有侦察/测试动作严格按级别执行。未明确声明的目标一律按 `ROE-PASSIVE` 处理。
+
+| 级别 | 允许 | 禁止 |
+|---|---|---|
+| `ROE-AGGRESSIVE` 授权完整 | 端口扫描、子域名/DNS 爆破、目录/参数 fuzz、nuclei 批量模板 | — |
+| `ROE-PASSIVE` 纯被动（默认） | 第三方数据源查询（crt.sh / 测绘引擎 / wayback 等）、JS/HTML 被动挖掘、访问从 JS/robots/sitemap 提取出的真实路径 | 端口扫描、任何 wordlist 爆破、参数 fuzz、nuclei |
+| `ROE-HYBRID` 针对性 | `ROE-PASSIVE` 全部 + ≤N 个高价值已知路径点测（.git/.env/actuator 等） | 批量 fuzz、端口扫描 |
+
+边界定义：
+- ❌ 算 fuzz / 扫描（禁止）：nmap/masscan 端口扫描、ffuf/gobuster/dirsearch 目录爆破、arjun/x8 参数 fuzz、子域名 wordlist 爆破、nuclei 批量模板。
+- ✅ 算被动 / 正常业务流量（允许）：查询 crt.sh / 测绘引擎等已有数据；下载页面引用的 JS 并提取 API；访问 robots.txt / sitemap.xml / security.txt；访问 JS 中提取出的真实路径（仍遵守「每端点 ≤5」与 No Brute Force）。
+- 纯被动 ≠ 无限制访问，而是「只访问有依据的路径，不做无依据枚举」。
+
 # 工作模式
 本技能支持两种工作模式，根据环境自动适配：
 

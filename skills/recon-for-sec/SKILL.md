@@ -12,6 +12,20 @@ description: >-
 
 ---
 
+## 授权分级路由（RoE Gate，必须第一步执行）
+
+接新目标前，先按目标授权范围判定 RoE 级别（见 CLAUDE.md「目标授权分级」），再决定走哪条流程：
+
+| RoE 级别 | 可执行的章节 |
+|---|---|
+| `ROE-PASSIVE`（默认） | §2 Passive、§4、§5 JavaScript Source Mining、§6 GitHub dork；其余标注 `[需 ROE-AGGRESSIVE]` / `[ROE-HYBRID]` 的跳过 |
+| `ROE-HYBRID` | PASSIVE 全部 + §10/§12/§13 等已知路径点测（≤N 个高价值路径，非 wordlist 爆破） |
+| `ROE-AGGRESSIVE` | 全部章节可用 |
+
+> 判定规则：默认 `ROE-PASSIVE`；只有目标/用户明确授权才升级。任何标注了级别的章节，超出当前级别的直接跳过，不得越级。
+
+---
+
 ## 0. 入口与下钻路由（Entry & Sub-skill Routing）
 
 这是新目标和未知攻击面的起始入口。
@@ -50,7 +64,7 @@ Target Selection
 
 ## 2. SUBDOMAIN ENUMERATION (CRITICAL FIRST STEP)
 
-### Passive (no DNS queries to target)
+### Passive (no DNS queries to target) [ROE-PASSIVE 可用]
 ```bash
 # Subfinder (aggregates multiple sources):
 subfinder -d target.com -o subdomains.txt
@@ -65,7 +79,7 @@ curl -s "https://crt.sh/?q=%.target.com&output=json" | jq -r '.[].name_value' | 
 # Web: https://securitytrails.com/list/apex_domain/target.com
 ```
 
-### Active (DNS brute force + resolution)
+### Active (DNS brute force + resolution) [需 ROE-AGGRESSIVE]
 ```bash
 # Massdns + wordlist:
 massdns -r /path/to/resolvers.txt -t A -o S -w output.txt \
@@ -81,7 +95,7 @@ cat subdomains.txt | dnsx -a -resp -o resolved.txt
 # Recommended wordlist: SecLists/Discovery/DNS/
 ```
 
-### Virtual Host Discovery
+### Virtual Host Discovery [需 ROE-AGGRESSIVE]
 ```bash
 # ffuf vhost mode:
 ffuf -w wordlist.txt -u https://target.com \
@@ -93,7 +107,7 @@ gobuster vhost -u https://target.com -w wordlist.txt
 
 ---
 
-## 3. SERVICE AND PORT DISCOVERY
+## 3. SERVICE AND PORT DISCOVERY [需 ROE-AGGRESSIVE]
 
 ```bash
 # Fast port scan (common ports):
@@ -111,7 +125,7 @@ masscan -p 80,443,8080,8443 10.0.0.0/8 --rate=1000
 
 ---
 
-## 4. WEB TECHNOLOGY FINGERPRINTING
+## 4. WEB TECHNOLOGY FINGERPRINTING [ROE-PASSIVE 可用（仅对已知/已访问资产）]
 
 ```bash
 # Wappalyzer (browser extension) or:
@@ -136,7 +150,7 @@ curl -sI https://target.com | grep -i "server\|x-powered-by\|x-generator\|cf-ray
 
 ## 5. ENDPOINT DISCOVERY
 
-### Directory Brute Force
+### Directory Brute Force [需 ROE-AGGRESSIVE]
 ```bash
 # ffuf (fastest):
 ffuf -u https://target.com/FUZZ -w /usr/share/seclists/Discovery/Web-Content/raft-medium-files.txt \
@@ -149,7 +163,7 @@ gobuster dir -u https://target.com -w wordlist.txt -x php,html,js,json
 feroxbuster -u https://target.com -w wordlist.txt -x php,html,txt -r
 ```
 
-### Parameter Discovery
+### Parameter Discovery [需 ROE-AGGRESSIVE]
 ```bash
 # Arjun (hidden parameter finder):
 arjun -u https://target.com/api/endpoint
@@ -158,7 +172,7 @@ arjun -u https://target.com/api/endpoint
 x8 -u https://target.com/api/endpoint -w params-wordlist.txt
 ```
 
-### JavaScript Source Mining
+### JavaScript Source Mining [ROE-PASSIVE 可用]
 ```bash
 # Extract endpoints from JS files:
 gau target.com | grep '\.js$' | httpx -mc 200 | xargs -I{} curl -s {} | \
@@ -174,7 +188,7 @@ gau target.com | sort -u > all_urls.txt
 waybackurls target.com | sort -u > wayback_urls.txt
 ```
 
-### API Endpoint Discovery
+### API Endpoint Discovery [需 ROE-AGGRESSIVE（Swagger/GraphQL 已知路径点测可用 ROE-HYBRID）]
 ```bash
 # Common API paths:
 ffuf -u https://target.com/FUZZ -w /SecLists/Discovery/Web-Content/api/api-endpoints.txt
@@ -188,7 +202,7 @@ test: /graphql /gql /v1/graphql /api/graphql
 
 ---
 
-## 6. SOURCE CODE RECON
+## 6. SOURCE CODE RECON [ROE-PASSIVE 可用（GitHub dork）/ ROE-HYBRID（敏感文件点测）]
 
 ### GitHub / GitLab Exposure
 ```bash
@@ -279,7 +293,7 @@ Priority 5: Import/export, template rendering → XXE, SSTI
 
 ---
 
-## 9. NUCLEI TEMPLATES (AUTOMATED SCANNING)
+## 9. NUCLEI TEMPLATES (AUTOMATED SCANNING) [需 ROE-AGGRESSIVE]
 
 ```bash
 # Run all on target:
@@ -296,7 +310,7 @@ cat subdomains.txt | nuclei -t exposures/ -t misconfiguration/ -o exposed.txt
 
 ---
 
-## 10. COMMON MISCONFIGURATIONS (QUICK WINS)
+## 10. COMMON MISCONFIGURATIONS (QUICK WINS) [ROE-HYBRID（已知路径点测）]
 
 ```
 □ CORS: Access-Control-Allow-Origin: * with credentials → CSRF + data theft
@@ -334,7 +348,7 @@ cat subdomains.txt | nuclei -t exposures/ -t misconfiguration/ -o exposed.txt
 
 ---
 
-## 12. JAVA MIDDLEWARE FINGERPRINT MATRIX
+## 12. JAVA MIDDLEWARE FINGERPRINT MATRIX [ROE-HYBRID（已知路径点测）]
 
 | Middleware | Detection Path | Key Indicators |
 |---|---|---|
@@ -363,7 +377,7 @@ cat subdomains.txt | nuclei -t exposures/ -t misconfiguration/ -o exposed.txt
 
 ---
 
-## 13. INFORMATION LEAK DETECTION CHECKLIST
+## 13. INFORMATION LEAK DETECTION CHECKLIST [ROE-HYBRID（已知路径点测）]
 
 ### Version Control & Backup Leaks
 
