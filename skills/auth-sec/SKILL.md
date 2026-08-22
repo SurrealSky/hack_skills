@@ -21,6 +21,7 @@ description: >-
 ## Skill Map
 
 - [Authentication Bypass](./authbypass-authentication-flaws/SKILL.md): 登录绕过、找回密码、2FA、枚举、爆破防护
+- [403 Forbidden Bypass](./403-forbidden-bypass/SKILL.md): 403 路径绕过、路径归一化、方法覆盖、Header 重写
 - [IDOR Broken Object Authorization](./idor-broken-object-authorization/SKILL.md): IDOR、BOLA、BFLA、对象权限缺失
 - [JWT OAuth Token Attacks](./jwt-oauth-token-attacks/SKILL.md): 算法混淆、密钥信任、Claim 滥用、Token 伪造
 - [OAuth OIDC Misconfiguration](./oauth-oidc-misconfiguration/SKILL.md): redirect URI、state、nonce、PKCE、账号绑定

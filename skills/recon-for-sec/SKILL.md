@@ -30,6 +30,8 @@ description: >-
 
 这是新目标和未知攻击面的起始入口。
 
+> **路由权威唯一化（避免与 hack 冲突）**：跨类路由的唯一权威是 **hack 核心路由表**。本技能（P1 方法论）只做「本类内下钻」（→ `insecure-source-code-management` / `dependency-confusion`）；凡命中跨类方向（api-sec / auth-sec / injection-checking / business-logic-vuln / file-access-vuln），一律把「现象」**回流 hack**，由 hack 统一决策，本技能不直接指向兄弟 P1。
+
 ### When to Use
 
 - 你刚接一个新的目标，还不知道先测什么
@@ -45,7 +47,7 @@ description: >-
 
 1. 先确认 in-scope 资产和目标类型
 2. 再做资产发现、端口与服务识别、技术指纹与端点收集
-3. 按收集到的现象再路由到 [api-sec](../api-sec/SKILL.md)、[auth-sec](../auth-sec/SKILL.md)、[injection-checking](../injection-checking/SKILL.md) 或 [business-logic-vuln](../business-logic-vuln/SKILL.md)
+3. 收集到的「现象」回流 hack 核心路由表，由 hack 决策加载哪个方向（api-sec / auth-sec / injection-checking / business-logic-vuln 等）
 
 ---
 
@@ -150,6 +152,20 @@ curl -sI https://target.com | grep -i "server\|x-powered-by\|x-generator\|cf-ray
 
 ## 5. ENDPOINT DISCOVERY
 
+### Static Discovery Files [ROE-PASSIVE 可用]
+```bash
+# 静态发现文件（先于任何暴力枚举，直接取现成路径清单）:
+test: /robots.txt /sitemap.xml /security.txt /humans.txt /crossdomain.xml
+
+# robots.txt       → Disallow 路径（隐藏目录/后台线索）
+# sitemap.xml      → 全量 URL 清单（真实路径，直接作为端点候选）
+# security.txt     → 安全联系人/披露策略
+# humans.txt       → 团队/技术栈线索
+# crossdomain.xml  → Flash 跨域策略（可能暴露可信域）
+# .well-known/     → openid-configuration / security.txt / assetlinks.json 等
+```
+> 产物（真实路径、隐藏目录）作为「现象」回流 hack 路由表，命中其余条目即加载对应技能。
+
 ### Directory Brute Force [需 ROE-AGGRESSIVE]
 ```bash
 # ffuf (fastest):
@@ -177,6 +193,10 @@ x8 -u https://target.com/api/endpoint -w params-wordlist.txt
 # Extract endpoints from JS files:
 gau target.com | grep '\.js$' | httpx -mc 200 | xargs -I{} curl -s {} | \
   grep -oE '"/[a-zA-Z0-9/_-]+"' | sort -u
+
+# 顺带 grep JS 中泄露的密钥/内部路径（信息泄露线索）:
+gau target.com | grep '\.js$' | httpx -mc 200 | xargs -I{} curl -s {} | \
+  grep -oiE '(api[_-]?key|secret|token|password|sk_live_[a-z0-9]+)' | sort -u
 
 # LinkFinder:
 python3 linkfinder.py -i https://target.com -d -o output.html
@@ -377,52 +397,12 @@ cat subdomains.txt | nuclei -t exposures/ -t misconfiguration/ -o exposed.txt
 
 ---
 
-## 13. INFORMATION LEAK DETECTION CHECKLIST [ROE-HYBRID（已知路径点测）]
+## 13. INFORMATION LEAK（信息泄露线索）→ 识别后转交深挖 [ROE-HYBRID（已知路径点测）]
 
-### Version Control & Backup Leaks
+> 本节只做**线索识别 + 转交**，不再重复罗列 VCS/备份/密钥的探测路径（已收敛至 `insecure-source-code-management`，作为「信息泄露」漏洞类型的**唯一深度技能**，避免与上文章节重复）。
+> 定位：hack 核心路由表中「信息泄露」已并入 Recon（不再单列），本节即该子方向在 recon 内的落点。
 
-```
-/.git/HEAD                    → Git repository exposed
-/.svn/entries                 → SVN metadata
-/.svn/wc.db                   → SVN SQLite database
-/.hg/requires                 → Mercurial
-/.bzr/README                  → Bazaar
-/.DS_Store                    → macOS directory listing
-```
-
-### Backup File Patterns
-
-```
-/backup.zip    /backup.tar.gz    /backup.sql
-/wwwroot.rar   /www.zip          /web.zip
-/db.sql        /database.sql     /dump.sql
-/config.php.bak    /config.php~    /config.php.swp
-/.config.php.swp   /wp-config.php.bak
-/.env          /.env.bak         /.env.production
-```
-
-### API Documentation & Debug
-
-```
-/swagger-ui.html              → Swagger/OpenAPI
-/swagger-ui/                  → Swagger UI
-/api-docs                     → API documentation
-/graphql                      → GraphQL playground
-/graphiql                     → GraphQL IDE
-/debug/                       → Debug endpoints
-/phpinfo.php                  → PHP configuration
-/server-status                → Apache status
-/server-info                  → Apache info
-/nginx_status                 → Nginx status
-```
-
-### Cloud & Infrastructure
-
-```
-/.aws/credentials             → AWS credentials
-/.docker/config.json          → Docker registry auth
-/robots.txt                   → Disallowed paths (hint list)
-/sitemap.xml                  → Full URL listing
-/crossdomain.xml              → Flash cross-domain policy
-/.well-known/                 → Various well-known URIs
-```
+- 命中 `.git/` `.svn/` `.hg/` `.bzr/` `.DS_Store`、`/backup.zip` `/dump.sql` `/.env` 等 VCS/备份/配置泄露 → 加载 [insecure-source-code-management](../insecure-source-code-management/SKILL.md) 深挖（**本类内下钻**，唯一直接落点）。
+- 命中 `/.aws/credentials` `/.docker/config.json` 等运行时密钥 → 同上提取；命中凭证后**回流 hack**（凭证现象 → 由 hack 路由 Auth Bypass / API Security）。
+- 命中 `/swagger-ui/` `/v3/api-docs` `/graphql` `/graphiql` `/phpinfo.php` `/server-status` 等 **API 文档/调试端点** → 属于**攻击面发现（端点发现），不是信息泄露**，**回流 hack**（由 hack 路由到 api-sec 等方向）。
+- 命中 `/robots.txt` `/sitemap.xml` `/crossdomain.xml` `/.well-known/` → 属于 Recon 基础发现（见 §5 静态发现文件），非信息泄露。

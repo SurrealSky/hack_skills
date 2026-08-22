@@ -21,17 +21,19 @@ description: >
 
 ## 1. 核心路由表（始终驻留）
 
-**使用规则**：匹配现象后立即加载对应子技能。信息收集 与 信息泄露 条目优先级最高，应最先执行。
+**使用规则**：除「信息收集（Recon）」外，其余条目均按「现象」触发，命中即加载对应子技能。Recon 是**无条件第一步**，不依赖现象，须在任何其他测试前执行；其产出（端点清单、泄露线索）再作为现象触发后续条目。
+
+> **现象来源（两类，均能触发路由）**：路由表「现象」列包含两类信号，**不是**仅靠 Recon 一次性给齐——
+> 1. **攻击面现象（Recon 阶段可见，含信息泄露产出）**：端点结构、参数名（如 `?file=` `?id=` `?url=`）、技术栈、功能面（上传/登录/找回）、泄露的配置与密钥 → 决定「去哪里测」。
+> 2. **响应现象（初探后才可见）**：对可疑参数发起无害初探后观察到的反射、报错、延时、响应头异常（`X-Cache`/`ACAO`）、状态码变化 → 决定「是什么漏洞」。
+> 规则：Recon 给攻击面，初探响应的观察给漏洞信号；**二者任一命中路由表即加载对应子技能**，不得只测 Recon 显眼的参数而忽略初探响应里新冒出的现象。
 
 > **直连 vs 二级分流**：路由表中「路径」若指向叶子技能（如 `xss-cross-site-scripting/SKILL.md`），**直接加载该叶子**，无需先读 P1 分类路由器；仅当需要在同族方向间做「二次观察」分流（例如不确定是 XSS 还是 SQLi，或需在 BOLA/BFLA/方法滥用之间抉择）时，才加载 P1 分类路由器（`api-sec` / `auth-sec` / `injection-checking` / `business-logic-vuln` / `file-access-vuln`）做二次分流。
 
-- **信息收集（Recon）**
-  - 现象：`/robots.txt`、`/sitemap.xml`、`/.well-known/`、`/swagger-ui/`、`/v3/api-docs`、`/graphql` 可访问
-  - 路径：`../recon-for-sec/SKILL.md`（Recon 入口 + 完整方法论）
+> **路由权威唯一**：跨类路由（现象 → 顶层方向）唯一由本表决定。P1 方法论/路由器只做「本类内 P1→P2 下钻」，凡跨类方向一律把现象**回流本表**，不得直接指向兄弟 P1（如 recon-for-sec 不得直接路由到 api-sec）。
 
-- **信息泄露（Information Disclosure）**
-  - 现象：`/.git/`、`/.env`、`/backup.zip`、`/dump.sql`、`/js/*.js` 中暴露密钥或内部路径
-  - 路径：`../insecure-source-code-management/SKILL.md`（VCS/备份/.env 泄露）；`/js/*.js` 密钥等广义泄露见 `../recon-for-sec/SKILL.md` §13；命中凭证后重路由 Auth Bypass / API Security 复用
+- **信息收集（Recon）**——无条件第一步（非现象触发），含「信息泄露」子方向
+  - 路径：`../recon-for-sec/SKILL.md`（Recon 入口 + 完整方法论；静态发现与信息泄露线索的识别/转交均在其中）
 
 - **XSS（跨站脚本）**
   - 现象：输入反射到 HTML / JS 属性 / DOM 操作
@@ -60,6 +62,10 @@ description: >
 - **Auth Bypass / JWT / OAuth（认证绕过与令牌攻击）**
   - 现象：登录、注册、找回密码、2FA、Session 管理、JWT
   - 路径：`../auth-sec/authbypass-authentication-flaws/SKILL.md` 及 `../auth-sec/jwt-oauth-token-attacks/SKILL.md`
+
+- **权限绕过（403 Bypass）**
+  - 现象：路径返回 403（存在但被拒绝），或网关/WAF/反向代理层拒绝而怀疑后端未做同等校验
+  - 路径：`../auth-sec/403-forbidden-bypass/SKILL.md`
 
 - **Business Logic（业务逻辑漏洞）**
   - 现象：多步骤交易、优惠券、价格修改、库存扣减、状态机跳转（如 draft→paid→shipped）

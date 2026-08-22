@@ -14,10 +14,11 @@
 ```
 
 - **P0 `hack`**：核心路由表，按「现象」命中攻击方向，常驻上下文。
-- **P1 分类路由器**：带子技能的按更细「观察」二次下钻；单叶子的由 hack 直接落点。
+- **P1 分类路由器**：带子技能的按更细「观察」二次下钻（仅本类内）；跨类方向一律回流 hack。单叶子的由 hack 直接落点。
 - **P2 叶子技能**：具体 playbook，**按需加载**（`read_file`），测完**逻辑卸载**压缩成摘要。
 - **动态重路由**：每轮测试后基于新发现（响应头/报错/新接口）重新对照路由表。
 - **RoE Gate**：路由前必须先判授权级别，超出当前级别的章节一律跳过。
+- **现象来源（两类）**：攻击面现象（Recon 阶段可见，含信息泄露产出：端点结构、参数名、技术栈、泄露的配置/密钥）+ 响应现象（初探后才可见：反射、报错、延时、响应头异常）；二者任一命中路由表即触发下钻。
 
 ---
 
@@ -26,7 +27,7 @@
 ```
 P0  hack/SKILL.md ── 核心路由表（现象 → 方向，长驻）
 │
-├─ 现象：robots/sitemap/swagger/graphql/js 可访问
+├─ 第一步（无条件，非现象触发）：Recon ── 静态发现 + 信息泄露线索
 │   └─ P1 recon-for-sec ── 授权分级 RoE Gate（第一步硬门）
 │        ├─ P2 insecure-source-code-management  .git/.svn/.hg/.bzr/.env/备份.zip
 │        ├─ P2 dependency-confusion            内部包名 → 公开注册表抢占
@@ -42,6 +43,7 @@ P0  hack/SKILL.md ── 核心路由表（现象 → 方向，长驻）
 ├─ 现象：登录/注册/找回密码/2FA/Session/JWT/OAuth/SSO
 │   └─ P1 auth-sec ────────────────────────────
 │        ├─ P2 authbypass-authentication-flaws   登录绕过/2FA/枚举/爆破防护
+│        ├─ P2 403-forbidden-bypass              403 路径绕过/路径归一化/方法覆盖/Header 重写
 │        ├─ P2 idor-broken-object-authorization  IDOR/BOLA/BFLA/对象授权
 │        ├─ P2 jwt-oauth-token-attacks           算法混淆/密钥信任/Claim/Token伪造
 │        ├─ P2 oauth-oidc-misconfiguration       redirect_uri/state/nonce/PKCE/账号绑定
@@ -82,7 +84,7 @@ P0  hack/SKILL.md ── 核心路由表（现象 → 方向，长驻）
 └─ 单叶方向（hack 直接路由到叶子，无中间 P1 路由器）
      ├─ P2 path-traversal-lfi ──┐
      │    └─ P2 secondary-context   BFF/网关二级上下文路径遍历
-     ├─ P2 insecure-source-code-management  VCS/备份/.env 泄露
+     ├─ P2 insecure-source-code-management  「信息泄露」唯一深挖技能（经 recon-for-sec §13 转交）
      ├─ P2 open-redirect                    开放重定向
      ├─ P2 race-condition                   条件竞争（交叉 business-logic）
      ├─ P2 upload-insecure-files            文件上传 → 可链 XSS/XXE/CMDi/traversal
@@ -105,7 +107,7 @@ P0  hack/SKILL.md ── 核心路由表（现象 → 方向，长驻）
 |---|---|---|
 | recon-for-sec | `.claude/skills/recon-for-sec/SKILL.md` | 2 + 出口 |
 | api-sec | `.claude/skills/api-sec/SKILL.md` | 4 |
-| auth-sec | `.claude/skills/auth-sec/SKILL.md` | 7 |
+| auth-sec | `.claude/skills/auth-sec/SKILL.md` | 8 |
 | injection-checking | `.claude/skills/injection-checking/SKILL.md` | 18（含 EXTRA + 3 注释） |
 | business-logic-vuln | `.claude/skills/business-logic-vuln/SKILL.md` | 1 |
 | file-access-vuln | `.claude/skills/file-access-vuln/SKILL.md` | 2（交叉引用） |
@@ -122,7 +124,7 @@ P0  hack/SKILL.md ── 核心路由表（现象 → 方向，长驻）
 | web-cache-deception | `.claude/skills/web-cache-deception/SKILL.md` |
 | web-cache-poisoning | `.claude/skills/web-cache-poisoning/SKILL.md` |
 
-### P2 叶子技能全表（35 个）
+### P2 叶子技能全表（36 个）
 | 所属 P1 | 叶子技能 | 路径 |
 |---|---|---|
 | recon-for-sec | insecure-source-code-management | `insecure-source-code-management/SKILL.md` |
@@ -132,6 +134,7 @@ P0  hack/SKILL.md ── 核心路由表（现象 → 方向，长驻）
 | api-sec | api-auth-and-jwt-abuse | `api-sec/api-auth-and-jwt-abuse/SKILL.md` |
 | api-sec | graphql-and-hidden-parameters | `api-sec/graphql-and-hidden-parameters/SKILL.md` |
 | auth-sec | authbypass-authentication-flaws | `auth-sec/authbypass-authentication-flaws/SKILL.md` |
+| auth-sec | 403-forbidden-bypass | `auth-sec/403-forbidden-bypass/SKILL.md` |
 | auth-sec | idor-broken-object-authorization | `auth-sec/idor-broken-object-authorization/SKILL.md` |
 | auth-sec | jwt-oauth-token-attacks | `auth-sec/jwt-oauth-token-attacks/SKILL.md` |
 | auth-sec | oauth-oidc-misconfiguration | `auth-sec/oauth-oidc-misconfiguration/SKILL.md` |

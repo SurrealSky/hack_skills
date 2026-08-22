@@ -8,6 +8,8 @@ description: >-
 
 > **AI LOAD INSTRUCTION**: This skill covers detection and recovery of exposed version-control metadata, common backup artifacts, and related misconfigurations. Use only in **authorized** assessments. Treat recovered credentials and URLs as sensitive; do not exfiltrate real data beyond scope. For broad discovery workflow, cross-load [recon-for-sec](../recon-for-sec/SKILL.md) for the full recon methodology when that skill exists in the workspace.
 
+> **定位（信息泄露唯一深度技能）**：本技能是「信息泄露（Information Disclosure）」漏洞类型的**唯一深挖入口**。`recon-for-sec` §13 只负责识别线索并转交到本技能；VCS/备份/`.env` 泄露的具体探测、恢复与凭证提取全部在本技能完成，避免两处重复。命中凭证后按 hack 路由表重路由 Auth Bypass / API Security 复用。
+
 ## 0. QUICK START
 
 High-value paths to probe first (GET or HEAD, respect rate limits):
