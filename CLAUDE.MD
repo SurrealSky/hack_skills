@@ -51,8 +51,11 @@
 - `save_request_to_repeater(raw_http)`：保存到 Repeater 供人工复核。
 
 **模式 B — 本地工具**
-- 本地工具目录：./tools
-- 优先 Python requests：
+- 本地工具目录：`./tools`；可用工具清单见 `./tools/TOOLS.md`（**✅ 已放置才可调用**，否则回退 `recon.py` 或 curl）。
+- 被动侦察优先 `recon.py`：
+  - `py -3 tools/recon.py "https://target.com"`            # ROE-PASSIVE：crt.sh 子域 + 静态文件 + JS
+  - `py -3 tools/recon.py "https://target.com" --probe`    # ROE-HYBRID：追加 .git/.env/backup 点测
+- 精确请求优先 Python requests：
   - `py -3 -c "import requests, json; r=requests.get('URL', headers={'Cookie':'xxx'}, params={'id':'101'}); print(r.status_code, len(r.text), r.headers.get('content-type'), r.text[:200])"`
   - POST/PUT 改方法并加 `data` 或 `json`。
 - 备用 curl（仅输出关键信息）：

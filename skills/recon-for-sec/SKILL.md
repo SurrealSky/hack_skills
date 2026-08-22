@@ -26,6 +26,32 @@ description: >-
 
 ---
 
+## 环境适配（Windows 11 / 本地执行）
+
+> 本技能的工具命令来自 Linux bug-bounty playbook，**多数在 Windows 11 不能直接跑**（或需手动装 Go 二进制）。实际执行一律走 CLAUDE.md「模式 B」：**Python requests / curl**，本技能工具命令只作「手法参考」，需要时用 curl/requests 等价替换。
+> 本地已备 `tools/recon.py`（被动侦察）与 `tools/TOOLS.md`（工具可用性清单，✅ 已放置才可调用）。执行前先查 `TOOLS.md`，未放置的 CLI 一律回退 `recon.py` 或裸 curl。
+
+**工具可用性分级**：
+
+| 工具 | Windows 可用性 | 处置 |
+|---|---|---|
+| crt.sh / Wayback / GitHub API / 静态文件（robots、sitemap、.git、.env、JS） | ✅ 数据源，curl/requests 直接请求 | 用 curl/requests 实现，无需装工具 |
+| subfinder / amass / ffuf / httpx / nuclei / dnsx / gau / waybackurls / gobuster / feroxbuster / trufflehog / gitleaks | ⚠️ 有 Windows .exe 但需手动下载配置，且多为 `[需 ROE-AGGRESSIVE]` | 默认跳过；确需时再装，否则用 curl/requests 等价 |
+| massdns / masscan | ❌ Linux-only（raw socket） | 一律不可用，跳过 |
+| arjun / x8 / linkfinder | ⚠️ Python 需 pip 装，且 arjun/x8 为 `[需 ROE-AGGRESSIVE]` | 默认跳过 |
+
+**替换原则（ROE-PASSIVE 默认可跑的段落 → curl/requests）**：
+
+- 子域名被动收集 → `curl "https://crt.sh/?q=%.target.com&output=json"`（JSON 用 Python 解析，无需 subfinder/amass）
+- 静态发现文件 → 逐路径 `curl -s -w "%{http_code}" -o nul https://target.com/robots.txt`
+- JS 挖掘 → `curl -s https://target.com/app.js` 后本地 `grep`（无需 gau/httpx/linkfinder）
+- 技术指纹 → 手动看 `curl -sI https://target.com` 响应头（无需 wappalyzer/httpx）
+- 泄露探测 → 逐路径 `curl -s https://target.com/.git/HEAD`（ROE-HYBRID）
+
+> 凡标注 `[需 ROE-AGGRESSIVE]` 的章节（目录/参数 fuzz、nuclei、端口扫描、子域爆破）在 Windows 下既难跑、默认也不该跑，直接跳过。
+
+---
+
 ## 0. 入口与下钻路由（Entry & Sub-skill Routing）
 
 这是新目标和未知攻击面的起始入口。
